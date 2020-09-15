@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Report Generator</title>
+    <!-- Bulma CDN Link -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.0/css/bulma.min.css">
+    <!-- Chart JS CDN Link -->
+    <Script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></Script>
+    <!-- Style Rules for Printing-->
+    <!-- Only some context to be printed-->
+    <style>
+        @media print {
+            @page {
+                size: A4;
+                margin: 5px, 5px, 5px, 5px;
+            }
+            #reportUpload {
+                display: none;
+            }
+            body * {
+                visibility: hidden;
+            }
+            #printbutton,
+            #extranotes,
+            #savebutton {
+                display: none;
+            }
+            #reportForPrinting,
+            #reportForPrinting * {
+                visibility: visible;
+            }
+        }
+        
+        #sliderone,
+        #slidertwo {
+            width: 100%;
+        }
+        
+        #slidertitle {
+            visibility: hidden;
+        }
+        
+        #slideronegroup {
+            visibility: hidden;
+        }
+        
+        #usertextarea {
+            visibility: hidden;
+        }
+        
+        #slidertwogroup {
+            visibility: hidden;
+        }
+        
+        #extranotes {
+            visibility: hidden;
+        }
+        
+        #printbutton {
+            visibility: hidden;
+        }
+        
+        #savebutton {
+            visibility: hidden;
+        }
+    </style>
+</head>
+
+<body>
+
+    <section class="section">
+        <div class="container">
+
+            <div id="reportUpload" style="padding-bottom: 20px">
+
+                <div class="field">
+                    <label class="label">Please load a json file to produce a report</label>
+                    <div id="file-js-example" class="file has-name">
+                        <label class="file-label">
+                            <input class="file-input" type="file" name="upload" required>
+                            <span class="file-cta">
+                                <span class="file-icon">
+                                    <i class="fas fa-upload"></i>
+                                </span>
+                                <span class="file-label">
+                                    Choose a file…
+                                </span>
+                            </span>
+                            <span class="file-name">
+                                No file uploaded
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+            <div id="reportForPrinting">
+                <div class="columns">
+                    <div class="column">
+
+                        <!-- Report Data-->
+                        <div class="title is-2">
+                            <p id="titlemessage"></p>
+                        </div>
+                        <div class="is-size-5">
+                            <p id="patientid"></p>
+                            <p id="date"></p>
+                            <p id="amputationside"></p>
+                            <p id="notes"></p>
+                            <div class="columns" style="padding-top: 20px">
+                                <div class="column is-size-6">
+                                    <p id="max-a0"></p>
+                                    <p id="min-a0"></p>
+                                    <p id="average-a0"></p>
+                                </div>
+                                <div class="column is-size-6">
+                                    <p id="max-a1"></p>
+                                    <p id="min-a1"></p>
+                                    <p id="average-a1"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Graph-->
+                        <div class="columns">
+                            <div class="column is-two-thirds">
+                                <canvas id="myChart" width="100" height="50"></canvas>
+                            </div>
+                            <div class="column"></div>
+                            <div class="column"></div>
+                        </div>
+                        <div class="columns">
+                            <div class="column is-two-thirds">
+                                <canvas id="mySecondChart" width="100" height="50"></canvas>
+                            </div>
+                            <div class="column"></div>
+                            <div class="column"></div>
+                        </div>
+                        <p style="page-break-before: always"></p>
+                        <!-- Text Area -->
+                        <div class="columns" id="usertextarea">
+                            <div class="column is-size-6">
+                                <div class="field" id="textareashow">
+                                    <label class="label">Report notes:</label>
+                                    <div class="control">
+                                        <textarea id="additionaltextnotes" class="textarea" placeholder="Additional Notes....."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="column is-size-6"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <!-- div used to create some space-->
+            <div style="padding-top: 50px;"></div>
+            <!-- End of Printable DIV -->
+            <div class="columns">
+                <div class="column">
+                    <div class="is-size-5" id="slidertitle">
+                        <span class="tag is-info is-light is-medium">Select a start and end Time(Ms) value to customise a graph</span>
+                    </div>
+                    <div class="columns">
+                        <div class="column">
+                            <span id="slideronegroup">
+                                <label id="startvalue" class="label">Start value:</label>
+                                <input id="sliderone" min="0" onchange="populateSliderTwo();" step="1" type="range">
+                            </span>
+                        </div>
+                        <div class="column">
+                            <span id="slidertwogroup">
+                                <label id="endvalue" class="label">End value:</label>
+                                <input id="slidertwo" onchange="drawSecondChart();" step="1" type="range">
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="column">
+                </div>
+            </div>
+
+            <div class="columns">
+                <div class="column">
+                    <div>
+                        <button id="extranotes" class="button is-info" onclick="checkPrint();">Hide/Show Textarea</button>
+                        <button id="printbutton" class="button is-info" onclick="window.print();">Print Report</button>
+                    </div>
+                </div>
+
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <button id="savebutton" class="button is-info" onclick="addNotesToJsonFile();">Download with additional notes</button>
+                </div>
+
+            </div>
+        </div>
+        <!-- End of Contrainer-->
+    </section>
+    </div>
+    <!-- Script loaded after document loaded to handle data and manipulate document -->
+    <script>
+        //variables to store data
+
+        /**
+         * X Labels (Time Stamp (Ms))
+         */
+        var xlabels;
+
+        /**
+         * Y Axis Sensor A0 Data (Voltage)
+         */
+        var yAxisSensorA0;
+
+        /**
+         * X Axis Sensor A1 Data (Voltage)
+         */
+        var yAxisSensorA1;
+
+        /**
+         * Sensor A0 Results Map
+         * Key: Time Stamp (Ms)
+         * Value: Sensor Data (Voltage)
+         */
+        var sensorA0Results;
+
+        /**
+         * Sensor A1 Results Map
+         * Key: Time Stamp (Ms)
+         * Value: Sensor Data (Voltage)
+         */
+        var sensorA1Results;
+
+        /**
+         * Store results selected by user
+         * Results: Sensor Data A0 (Voltage)
+         */
+        var userSelectedA1;
+
+        /**
+         * Store results selected by user
+         * Results: Sensor Data A1 (Voltage)
+         */
+        var userSelectedA0;
+
+        /**
+         * Store xlabels selected by user
+         * xlabels: store Time (Ms) data
+         */
+        var userSelectedXLabels;
+
+        /**
+         * Draw ChartJs Chart
+         * Load all data and time stamps
+         */
+        async function drawChart() {
+            var ctx = document.getElementById('myChart').getContext('2d');
+            var myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: xlabels,
+                    datasets: [{
+                        label: 'Sensor A0 Data',
+                        data: yAxisSensorA0,
+                        fill: false,
+                        backgroundColor: 'rgb(244, 105, 54)',
+                        borderColor: 'rgb(244, 105, 54)',
+                        borderWidth: 1
+                    }, {
+                        label: 'Sensor A1 Data',
+                        data: yAxisSensorA1,
+                        fill: false,
+                        backgroundColor: 'rgb(251, 167, 27)',
+                        borderColor: 'rgb(251, 167, 27)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        yAxes: [{
+                            ticks: {
+                                // Include a dollar sign in the ticks
+                                callback: function(value, index, values) {
+                                    return value + 'v';
+                                }
+                            },
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Voltage'
+                            }
+                        }],
+                        xAxes: [{
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Time (Ms)'
+                            }
+                        }]
+                    },
+                    title: {
+                        display: true,
+                        text: 'EMG Signal Data'
+                    }
+                }
+            });
+        }
+
+
+        /**
+         * Returns key of time stramp
+         * Iterates through a map by given value (SliderValue)
+         * Returns the key at that iteration
+         */
+        function getTimeStamp(MapArray, SliderValue) {
+
+
+            var count = 0;
+
+            for (const key in MapArray) {
+
+                if (count == SliderValue) {
+                    return key;
+                    break;
+                }
+                count++;
+            }
+        }
+
+
+        /**
+         * Draws ChartJs from selected Data range
+         */
+        async function drawSecondChart() {
+
+            //Store SliderTwo Data in variable
+            var timeStampUpperValue = document.getElementById("slidertwo");
+
+            //Update current end value html with current slider value (slider value is the key value at the iteration)
+            document.getElementById("endvalue").innerHTML = "End Value: " + getTimeStamp(sensorA0Results, timeStampUpperValue.value);
+
+            //If called again initalise to 0
+            userSelectedA0 = [];
+            userSelectedA1 = [];
+            userSelectedXLabels = [];
+
+            //Store the lower and upper boundary 
+            var timeStampLowerValue = document.getElementById("sliderone");
+            var lowerValue = getTimeStamp(sensorA0Results, timeStampLowerValue.value);
+            var upperValue = getTimeStamp(sensorA1Results, timeStampUpperValue.value);
+
+            //Store data selected by user to populate new chart
+            userSelectedA0 = getSelectedData(sensorA0Results, lowerValue, upperValue);
+            userSelectedA1 = getSelectedData(sensorA1Results, lowerValue, upperValue);
+            userSelectedXLabels = getSelectedXLabels(sensorA0Results, lowerValue, upperValue);
+
+            var ctx = document.getElementById('mySecondChart').getContext('2d');
+            var myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: userSelectedXLabels,
+                    datasets: [{
+                        label: 'Sensor A0 Data',
+                        data: userSelectedA0,
+                        fill: false,
+                        backgroundColor: 'rgb(244, 105, 54)',
+                        borderColor: 'rgb(244, 105, 54)',
+                        borderWidth: 1
+                    }, {
+                        label: 'Sensor A1 Data',
+                        data: userSelectedA1,
+                        fill: false,
+                        backgroundColor: 'rgb(251, 167, 27)',
+                        borderColor: 'rgb(251, 167, 27)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        yAxes: [{
+                            ticks: {
+                                // Include a dollar sign in the ticks
+                                callback: function(value, index, values) {
+                                    return value + 'v';
+                                }
+                            },
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Voltage'
+                            }
+                        }],
+                        xAxes: [{
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Time (Ms)'
+                            }
+                        }]
+                    },
+                    title: {
+                        display: true,
+                        text: 'EMG Signal Data (custom timestamp range)'
+                    }
+                }
+            });
+        }
+
+        /**
+         * Searchs for the max voltage signal
+         * Returns value as a float
+         * @param {JSON Array} jsonArray 
+         * @param {Element - String} search 
+         */
+        function getMaxVoltage(jsonArray, search) {
+
+            var max;
+            var check;
+
+            for (x in jsonArray) {
+
+                check = parseFloat(jsonArray[x][search]);
+
+                if (max == null || check > max) {
+                    max = check;
+                }
+            }
+
+            return max;
+        }
+
+        /**
+         * Searchs for the min voltage signal
+         * Returns value as a float
+         * @param {JSON Array} jsonArray 
+         * @param {Element - String} search 
+         */
+        function getMinVoltage(jsonArray, search) {
+
+            var min;
+            var check;
+
+            for (x in jsonArray) {
+
+                check = parseFloat(jsonArray[x][search]);
+
+                if (min == null || check < min) {
+                    min = check;
+                }
+            }
+
+            return min;
+        }
+
+        /**
+         * Get the average voltage
+         * Returns an average float
+         * @param {JSON Array} jsonArray 
+         * @param {Element - String} search 
+         */
+        function getAverageVoltage(jsonArray, search) {
+
+            var totalValue = 0;
+            var average;
+
+            for (x in jsonArray) {
+                totalValue += parseFloat(jsonArray[x][search]);
+            }
+
+            var average = (totalValue / parseFloat(jsonArray.length));
+
+            return average;
+        }
+
+
+        /**
+         * Get all x axis Labels
+         * Return an array
+         * @param {JSON Array} jsonArray 
+         * @param {Element - String} search 
+         */
+        function getData(jsonArray, search) {
+
+            var labelsArray = [];
+            for (x in jsonArray) {
+                labelsArray[x] = parseFloat(jsonArray[x][search]);
+            }
+
+            return labelsArray
+
+        }
+
+        function populateSliderOne() {
+
+            //get the element to dynamicly create
+            const slider = document.getElementById("sliderone");
+            const maxValue = (Object.keys(sensorA0Results).length - 1);
+
+            slider.max = maxValue;
+
+            //Make the dropdown menu now visible
+            document.getElementById("slidertitle").style.visibility = "visible";
+            document.getElementById("slideronegroup").style.visibility = "visible";
+        }
+
+        function populateSliderTwo() {
+
+            const maxValue = (Object.keys(sensorA0Results).length - 1);
+            const sliderOne = document.getElementById("sliderone");
+            const sliderTwo = document.getElementById("slidertwo");
+
+            document.getElementById("startvalue").innerHTML = "Start Value: " + getTimeStamp(sensorA0Results, sliderOne.value);
+
+            sliderTwo.min = sliderOne.value;
+            sliderTwo.max = maxValue;
+            document.getElementById("slidertwogroup").style.visibility = "visible";
+        }
+
+        /**
+         * Returns a populate Array of sensor Data within boundary
+         * @param {*} mapArray MapArray Of Time Stamp and Sensor Data
+         * @param {*} lowerBoundary Lower time stamp boundary
+         * @param {*} UpperBoundary Uppper time stamp boundary
+         */
+        function getSelectedData(mapArray, lowerBoundary, UpperBoundary) {
+
+            //array to return
+            var arrayToReutrn = [];
+
+            for (const key in mapArray) {
+                //if the value is between users values add to array
+                if (parseInt(key) >= parseInt(lowerBoundary) && parseInt(key) <= parseInt(UpperBoundary)) {
+                    //add value to array
+                    arrayToReutrn.push(mapArray[key]);
+                }
+            }
+            return arrayToReutrn;
+        }
+
+        /**
+         * Returns a populate Array of time stamp data
+         * @param {*} mapArray MapArray Of Time Stamp and Sensor Data
+         * @param {*} lowerBoundary Lower time stamp boundary
+         * @param {*} UpperBoundary Uppper time stamp boundary
+         */
+        function getSelectedXLabels(mapArray, lowerBoundary, UpperBoundary) {
+            //array to return
+            var arrayToReutrn = [];
+
+            for (const key in mapArray) {
+                //if the value is between users values add to array
+                if (parseInt(key) >= parseInt(lowerBoundary) && parseInt(key) <= parseInt(UpperBoundary)) {
+                    //add value to array
+                    arrayToReutrn.push(key);
+                }
+            }
+            return arrayToReutrn;
+        }
+
+        // Var to save the Json Object
+        var jsonObj;
+        // Save the input file to const variable input
+        var input = document.querySelector('input[type="file');
+
+        // Event listener when input changes do something
+        // eventName = 'Change' function(e), useCapture = false
+        input.addEventListener('change', function(e) {
+
+            //Log the file list of the file
+            console.log(input.files)
+
+            //File Reader
+            const reader = new FileReader()
+
+            //When the file loads lets work with the result from reader
+            reader.onload = function() {
+
+                    //Parse the reader result to a JSON object
+                    jsonObj = JSON.parse(reader.result)
+
+                    //Update UserDetails
+                    document.getElementById("titlemessage").innerHTML = "MyoSensor Report";
+                    document.getElementById("patientid").innerHTML = "<b>Patient ID: </b>" + jsonObj.patientID;
+                    document.getElementById("notes").innerHTML = "<b>Notes: </b>" + jsonObj.notes;
+                    document.getElementById("amputationside").innerHTML = "<b>Amputation Side: </b>" + jsonObj.amputationSide;
+                    document.getElementById("date").innerHTML = "<b>Date and Time: </b>" + jsonObj.dateTime;
+                    //Update Sensor A0 Data
+                    document.getElementById("max-a0").innerHTML = "<b>Signal A0 Max Signal Voltage: </b>" + Number((getMaxVoltage(jsonObj.dataCollected.elements, "recordedSignalA0")).toFixed(3));
+                    document.getElementById("min-a0").innerHTML = "<b>Signal A0 Min Signal Voltage: </b>" + Number((getMinVoltage(jsonObj.dataCollected.elements, "recordedSignalA0")).toFixed(3));
+                    document.getElementById("average-a0").innerHTML = "<b>Signal A0 Average Signal Voltage: </b>" + Number((getAverageVoltage(jsonObj.dataCollected.elements, "recordedSignalA0")).toFixed(3));
+                    //Updae Sensor A1 Data
+                    document.getElementById("max-a1").innerHTML = "<b>Signal A1 Max Signal Voltage: </b>" + Number((getMaxVoltage(jsonObj.dataCollected.elements, "recordedSignalA1")).toFixed(3));
+                    document.getElementById("min-a1").innerHTML = "<b>Signal A1 Min Signal Voltage: </b>" + Number((getMinVoltage(jsonObj.dataCollected.elements, "recordedSignalA1")).toFixed(3));
+                    document.getElementById("average-a1").innerHTML = "<b>Signal A1 Average Signal Voltage: </b>" + Number((getAverageVoltage(jsonObj.dataCollected.elements, "recordedSignalA1")).toFixed(3));
+
+                    document.getElementById("usertextarea").style.visibility = "visible";
+                    document.getElementById("extranotes").style.visibility = "visible";
+                    document.getElementById("printbutton").style.visibility = "visible";
+                    document.getElementById("savebutton").style.visibility = "visible";
+
+                    //Populate the graph x axis labels of time stamp data recorded
+                    xlabels = getData(jsonObj.dataCollected.elements, "sensorOneXAxisCounter");
+                    yAxisSensorA0 = getData(jsonObj.dataCollected.elements, "recordedSignalA0");
+                    yAxisSensorA1 = getData(jsonObj.dataCollected.elements, "recordedSignalA1");
+
+                    //Create a map of the values of sensor data and time stamp
+                    sensorA0Results = yAxisSensorA0.reduce(function(sensorA0Results, field, index) {
+                        sensorA0Results[xlabels[index]] = field;
+                        return sensorA0Results;
+                    }, {});
+                    console.log(sensorA0Results);
+
+                    sensorA1Results = yAxisSensorA1.reduce(function(sensorA1Results, field, index) {
+                        sensorA1Results[xlabels[index]] = field;
+                        return sensorA1Results;
+                    }, {});
+                    console.log(sensorA1Results);
+
+                    drawChart();
+                    //populateDropDown();
+                    populateSliderOne();
+                }
+                //Read the file (only one file uploaded so index 0)
+            reader.readAsText(input.files[0])
+        }, false)
+
+
+        /**
+         * Allow user to show or hide text area
+         */
+        function checkPrint() {
+            var textarea = document.getElementById("textareashow");
+            if (textarea.style.visibility == "hidden") {
+                textarea.style.visibility = "visible";
+                textarea.style.display = "block";
+            } else {
+                textarea.style.visibility = "hidden";
+                textarea.style.display = "none";
+            }
+        }
+
+        //Java Script to change name from file upload
+        //Code from Bulma
+        const fileInput = document.querySelector('#file-js-example input[type=file]');
+        fileInput.onchange = () => {
+            if (fileInput.files.length > 0) {
+                const fileName = document.querySelector('#file-js-example .file-name');
+                fileName.textContent = fileInput.files[0].name;
+            }
+        }
+
+        /**
+         * Append additional notes in JSON File and allow download
+         */
+        function addNotesToJsonFile() {
+
+            // Reference : (Mohshbool, 2019) 
+            // Get todays date and formatt
+            var date = new Date();
+            var dd = String(date.getDate()).padStart(2, '0');
+            var mm = String(date.getMonth() + 1).padStart(2, '0'); //January is 0 + 1 to get Jan Month
+            var yyyy = date.getFullYear();
+            date = dd + '_' + mm + '_' + yyyy;
+            //Create new filename to store json to
+            var fileNameToSave = jsonObj.patientID + '_' + date + ".json";
+            //Get notes to be added
+            var notesToAdd = document.getElementById("additionaltextnotes").value;
+            //Add notes to jsonObj
+            jsonObj.notes += "<br>" + notesToAdd;
+
+            // Reference : (Formet, 2018)
+            // Save and Download Json Object
+            var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonObj));
+            var downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", fileNameToSave);
+            document.body.appendChild(downloadAnchorNode); // required for firefox
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+    </script>
+</body>
+
+</html>
